@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/context
+       http://www.springframework.org/schema/context/spring-context.xsd">
+
+    <context:property-placeholder location="datasource.properties" file-encoding="utf-8" />
+
+    <bean id="userService" class="com.pain.flame.service.impl.UserServiceImpl">
+        <property name="jdbcTemplate" ref="jdbcTemplate" />
+    </bean>
+
+    <bean id="datasource" class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+        <property name="driverClassName" value="${jdbc.driver}" />
+        <property name="url" value="${jdbc.url}" />
+        <property name="username" value="${jdbc.username}" />
+        <property name="password" value="${jdbc.password}" />
+    </bean>
+    <bean id="txManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="datasource" />
+    </bean>
+
+    <bean id="jdbcTemplate" class="org.springframework.jdbc.core.JdbcTemplate">
+        <property name="dataSource" ref="datasource" />
+    </bean>
+
+    <bean id="txTemplate" class="org.springframework.transaction.support.TransactionTemplate">
+        <property name="transactionManager" ref="txManager" />
+    </bean>
+
+    <bean id="txInterceptor" class="org.springframework.transaction.interceptor.TransactionInterceptor">
+        <property name="transactionManager" ref="txManager" />
+        <property name="transactionAttributes">
+            <props>
+                <prop key="get*">PROPAGATION_REQUIRED,readOnly</prop>
+                <prop key="update*">PROPAGATION_REQUIRED</prop>
+            </props>
+        </property>
+    </bean>
+
+    <bean id="userServiceProxy" class="org.springframework.aop.framework.ProxyFactoryBean">
+        <property name="target" ref="userService" />
+        <property name="proxyInterfaces" value="com.pain.flame.service.UserService" />
+
+        <property name="interceptorNames">
+            <!--<array>-->
+                <!--<value>txInterceptor</value>-->
+            <!--</array>-->
+            <list>
+                <idref bean="txInterceptor" />
+            </list>
+        </property>
+    </bean>
+</beans>
